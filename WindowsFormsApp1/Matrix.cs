@@ -19,44 +19,8 @@ namespace WindowsFormsApp1
             Data = new double[r, c];
         }
 
-        public static Matrix Add(Matrix m, double d)
+        public static Matrix operator *(Matrix a, Matrix b)
         {
-            var result = new Matrix(m.RowCount, m.ColumnCount);
-            for (int i = 0; i < m.RowCount; i++)
-                for (int k = 0; k < m.ColumnCount; k++)
-                    result.Data[i, k] = m.Data[i, k] + d;
-            return result;
-        }
-        public static Matrix Add(Matrix a, Matrix b)
-        {
-            var result = new Matrix(a.RowCount, a.ColumnCount);
-            for (int i = 0; i < a.RowCount; i++)
-                for (int k = 0; k < a.ColumnCount; k++)
-                    result.Data[i, k] = a.Data[i, k] + b.Data[i, k];
-            return result;
-        }
-        public static Matrix Subtract(Matrix a, Matrix b)
-        {
-            var result = new Matrix(a.RowCount, a.ColumnCount);
-            for (int i = 0; i < a.RowCount; i++)
-                for (int k = 0; k < a.ColumnCount; k++)
-                    result.Data[i, k] = a.Data[i, k] - b.Data[i, k];
-            return result;
-        }
-
-        public static Matrix Multiply(Matrix m, double d)
-        {
-            var result = new Matrix(m.RowCount, m.ColumnCount);
-            for (int i = 0; i < m.RowCount; i++)
-                for (int k = 0; k < m.ColumnCount; k++)
-                    result.Data[i, k] = m.Data[i, k] * d;
-            return result;
-        }
-        public static Matrix Multiply(Matrix a, Matrix b)
-        {
-            //Matrix product (Vector dot product)
-            //if ((a.RowCount != b.ColumnCount) || (a.ColumnCount != b.RowCount))                throw new ArgumentException();
-
             var result = new Matrix(a.RowCount, b.ColumnCount);
             for (int i = 0; i < result.RowCount; i++)
                 for (int k = 0; k < result.ColumnCount; k++)
@@ -68,6 +32,41 @@ namespace WindowsFormsApp1
 
                     result.Data[i, k] = sum;
                 }
+            return result;
+        }
+        public static Matrix operator *(Matrix m, double d)
+        {
+            var result = new Matrix(m.RowCount, m.ColumnCount);
+            for (int i = 0; i < m.RowCount; i++)
+                for (int k = 0; k < m.ColumnCount; k++)
+                    result.Data[i, k] = m.Data[i, k] * d;
+            return result;
+        }
+
+        public static Matrix operator +(Matrix m, double d)
+        {
+            var result = new Matrix(m.RowCount, m.ColumnCount);
+            for (int i = 0; i < m.RowCount; i++)
+                for (int k = 0; k < m.ColumnCount; k++)
+                    result.Data[i, k] = m.Data[i, k] + d;
+            return result;
+        }
+        public static Matrix operator +(Matrix a, Matrix b)
+        {
+            var result = new Matrix(a.RowCount, a.ColumnCount);
+            for (int i = 0; i < a.RowCount; i++)
+                for (int k = 0; k < a.ColumnCount; k++)
+                    result.Data[i, k] = a.Data[i, k] + b.Data[i, k];
+            return result;
+        }
+        public static Matrix operator -(Matrix a, Matrix b)
+        {
+            return a + (b * -1);
+
+            var result = new Matrix(a.RowCount, a.ColumnCount);
+            for (int i = 0; i < a.RowCount; i++)
+                for (int k = 0; k < a.ColumnCount; k++)
+                    result.Data[i, k] = a.Data[i, k] - b.Data[i, k];
             return result;
         }
 
