@@ -73,6 +73,7 @@ namespace WindowsFormsApp1
         {
             Console.WriteLine("Hello World!");
 
+
             /*            brain = new Perceptron(3);
             pictureBox1.Size = new Size(500, 500);
             for (int i = 0; i < 100; i++)
