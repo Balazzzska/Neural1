@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using Neural;
 
 namespace WindowsFormsApp1
 {
@@ -16,7 +17,7 @@ namespace WindowsFormsApp1
             random = new Random();
         }
 
-        NeuralNetwork nn = new NeuralNetwork(2, 10, 1);
+        NeuralNetwork nn = new NeuralNetwork(2, 4, 1);
         Dictionary<List<double>, List<double>> answers = new Dictionary<List<double>, List<double>>
             {
                 { new List<double>() { -1, 1 }, new List<double>() { 1 } },

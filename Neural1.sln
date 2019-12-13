@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29009.5
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Neural1", "Neural1\Neural1.csproj", "{B518F75E-BA2D-4EBE-AAF2-C65F46EB5A5D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XOR", "WindowsFormsApp1\XOR.csproj", "{4D00086B-84B1-44CB-BB6F-5B09BE183F26}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsFormsApp1", "WindowsFormsApp1\WindowsFormsApp1.csproj", "{4D00086B-84B1-44CB-BB6F-5B09BE183F26}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Handwrittendigits", "Handwrittendigits\Handwrittendigits.csproj", "{164A3BAA-2568-491C-AA6D-054BEBED8359}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuralNetwork", "NeuralNetwork\NeuralNetwork.csproj", "{74D437A5-D674-4B99-AFBD-C7E998F1E959}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +15,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B518F75E-BA2D-4EBE-AAF2-C65F46EB5A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B518F75E-BA2D-4EBE-AAF2-C65F46EB5A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B518F75E-BA2D-4EBE-AAF2-C65F46EB5A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B518F75E-BA2D-4EBE-AAF2-C65F46EB5A5D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4D00086B-84B1-44CB-BB6F-5B09BE183F26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4D00086B-84B1-44CB-BB6F-5B09BE183F26}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D00086B-84B1-44CB-BB6F-5B09BE183F26}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D00086B-84B1-44CB-BB6F-5B09BE183F26}.Release|Any CPU.Build.0 = Release|Any CPU
+		{164A3BAA-2568-491C-AA6D-054BEBED8359}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{164A3BAA-2568-491C-AA6D-054BEBED8359}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{164A3BAA-2568-491C-AA6D-054BEBED8359}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{164A3BAA-2568-491C-AA6D-054BEBED8359}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74D437A5-D674-4B99-AFBD-C7E998F1E959}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74D437A5-D674-4B99-AFBD-C7E998F1E959}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74D437A5-D674-4B99-AFBD-C7E998F1E959}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74D437A5-D674-4B99-AFBD-C7E998F1E959}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
