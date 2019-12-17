@@ -12,22 +12,28 @@ using System.Drawing.Drawing2D;
 
 namespace Car
 {
+    public class Line
+    {
+        public Vector2 a;
+        public Vector2 b;
+        public Line(Vector2 a, Vector2 b)
+        {
+            this.a = a;
+            this.b = b;
+        }
+
+        public Line(float x1, float y1, float x2, float y2)
+        {
+            this.a = new Vector2(x1, y1);
+            this.b = new Vector2(x2, y2);
+        }
+    }
+
     public partial class Form1 : Form
     {
-        //http://kidscancode.org/godot_recipes/2d/car_steering/
-
-
-        Vector2 carPosition;
-        Vector2 carVelocity;
-        Vector2 carAcceleration;
-        float carThrottle;  //-1: fék, 1: gáz
-        float carWheel;     //-1: bal, 0: közép, 1: jobb
-
-        float engine_power = 1; //
-        float carRotation; //Kell a kirajzolashoz
-        float wheel_base = 40;  // Distance from front to rear wheel
-        float carLength = 50; //Total length of the car
-
+        const float PI = (float)Math.PI;
+        Car car;
+        List<Line> obstacles;
         public Form1()
         {
             InitializeComponent();
@@ -43,106 +49,62 @@ namespace Car
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            carPosition = new Vector2(50, 300);
-            carVelocity = Vector2.Zero;
-            carAcceleration = Vector2.Zero;
-            carWheel = 0;
+            car = new Car(150, 300);
+
+            obstacles = new List<Line>()
+            {
+                new Line(10, 10, 350, 20),
+                new Line(10, 10, 350, 20),
+                new Line(10, 700, 800, 400),
+            };
         }
 
-        float cos(double d) => (float)Math.Cos(d);
-        float sin(double d) => (float)Math.Sin(d);
-        float atan2(double x, double y) => (float)Math.Atan2(x, y);
+
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            Loop();
-            Draw();
+            getinput(out float steer_angle, out float throttle);
+            car.Move(steer_angle, throttle);
+
+            var r = car.RayCast(obstacles, out List<Vector2> pts);
+
+            Text = car.Speed.ToString();
+
+            Bitmap bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
+            Graphics g = Graphics.FromImage(bmp);
+            g.Clear(Color.AntiqueWhite);
+
+            car.Draw(g);
+
+            foreach (var l in obstacles)
+                g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
+
+            foreach (var p in pts)
+            {
+                var d = (car.Position - p).Length();
+                g.DrawLine(
+                    d < 100 ? Pens.Red : Pens.Black,
+                    car.Position.X,
+                    car.Position.Y,
+                    p.X,
+                    p.Y);
+            }
+            pictureBox1.Image = bmp;
         }
 
-        void getinput(out float steer_angle)
+        void getinput(out float steer_angle, out float throttle)
         {
-            const float PI = (float)Math.PI;
-            const float steering_angle = PI / 8;   // Amount that front wheel turns, in radians
+            const float steering_angle = PI / 4;   // Amount that front wheel turns, in radians
             steer_angle = 0f;
             if (iskeydown[Keys.A]) steer_angle -= 1;
             if (iskeydown[Keys.D]) steer_angle += 1;
             steer_angle *= steering_angle;
 
-            carAcceleration = Vector2.Zero;
+            throttle = 0;
             if (iskeydown[Keys.W])
-                carAcceleration = new Vector2(engine_power, 0);
+                throttle += 1f;
+            if (iskeydown[Keys.S])
+                throttle -= 1f;
         }
-
-        void calculate_steering(float steer_angle)
-        {
-            /*var rear_wheel = carPosition;
-            rear_wheel.X -= wheel_base / 2f;
-
-            var front_wheel = carPosition;
-            front_wheel.X += wheel_base / 2f;
-
-            rear_wheel += carVelocity;
-            front_wheel += Vector2.Transform(carVelocity, Matrix3x2.CreateRotation(steer_angle));
-            */
-
-            Vector2 front_wheel = carPosition;
-            front_wheel.X += wheel_base / 2;
-            front_wheel = Vector2.Transform(front_wheel, Matrix3x2.CreateRotation(carRotation, carPosition));
-
-            Vector2 rear_wheel = carPosition;
-            rear_wheel.X -= new Vector2(cos(carRotation), sin(carRotation)) * (wheel_base / 2);
-
-            rear_wheel += Vector2.Transform(carVelocity, Matrix3x2.CreateRotation(carRotation));
-            front_wheel += Vector2.Transform(carVelocity, Matrix3x2.CreateRotation(carRotation + steer_angle));
-
-            Text = front_wheel.ToString() + "  |   " + front_wheel.ToString();
-
-            carPosition = (rear_wheel + front_wheel) / 2f;
-            carRotation = atan2(front_wheel.Y - rear_wheel.Y, front_wheel.X - rear_wheel.X);
-
-            /* var new_heading = Vector2.Normalize(front_wheel - rear_wheel);
-              carVelocity = new_heading * carVelocity.Length();
-              Text = new_heading.ToString();
-
-              carRotation = atan2();*/
-        }
-
-        void Loop()
-        {
-            getinput(out float steer_angle);
-
-            carVelocity += carAcceleration;
-            calculate_steering(steer_angle);
-
-            //carPosition += carVelocity;
-        }
-
-        void Draw()
-        {
-            Bitmap bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
-            Graphics g = Graphics.FromImage(bmp);
-            g.Clear(Color.Wheat);
-
-            g.RotateTransform(carRotation * 180);
-            g.TranslateTransform(carPosition.X, carPosition.Y, MatrixOrder.Append);
-
-            g.FillRectangle(Brushes.Black, -wheel_base / 2 - 5, -13, 10, 3);
-            g.FillRectangle(Brushes.Black, wheel_base / 2 - 5, -13, 10, 3);
-            g.FillRectangle(Brushes.Black, -wheel_base / 2 - 5, 10, 10, 3);
-            g.FillRectangle(Brushes.Black, wheel_base / 2 - 5, 10, 10, 3);
-
-            g.FillRectangle(Brushes.DarkOrange, -carLength / 2, -10, carLength, 20);
-            g.FillRectangle(Brushes.DarkBlue, carLength / 2 - 5, -10, 5, 20);
-            g.ResetTransform();
-
-            pictureBox1.Image = bmp;
-        }
-
-
-
-
-
-
-
 
         Dictionary<Keys, bool> iskeydown;
         protected override void OnKeyDown(KeyEventArgs e)
@@ -151,14 +113,12 @@ namespace Car
                 iskeydown[e.KeyCode] = true;
             base.OnKeyDown(e);
         }
-
         protected override void OnKeyUp(KeyEventArgs e)
         {
             if (iskeydown.ContainsKey(e.KeyCode))
                 iskeydown[e.KeyCode] = false;
             base.OnKeyUp(e);
         }
-
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if (keyData == Keys.Escape)
