@@ -3,40 +3,21 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
-using System.Text;
 using System.Numerics;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Drawing.Drawing2D;
-using System.IO;
 using static Car.Helper;
 
 namespace Car
 {
-    public class Line
+    public partial class MainForm : Form
     {
-        public Vector2 a;
-        public Vector2 b;
-        public Line(Vector2 a, Vector2 b)
-        {
-            this.a = a;
-            this.b = b;
-        }
-
-        public Line(float x1, float y1, float x2, float y2)
-        {
-            this.a = new Vector2(x1, y1);
-            this.b = new Vector2(x2, y2);
-        }
-    }
-
-    public partial class Form1 : Form
-    {
-        const float PI = (float)Math.PI;
         Car car;
         List<Line> obstacles;
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
 
@@ -49,9 +30,9 @@ namespace Car
             };
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void MainForm_Load(object sender, EventArgs e)
         {
-            car = new Car(150, 300);
+            car = new Car(250, 320);
 
             var file = File.ReadAllLines("data2.csv");
             var points = new List<Vector2>();
@@ -101,7 +82,7 @@ namespace Car
                 car.CheckCollision(obstacles);
 
                 var r = car.RayCast(obstacles, out List<Vector2> pts);
-                Text = car.Speed.ToString();
+                Text = car.DistanceTravelled.ToString();
                 g.Clear(Color.AntiqueWhite);
 
                 car.Draw(g);
@@ -122,9 +103,12 @@ namespace Car
             }
             else
             {
-                g.Clear(Color.Red);
-
+                g.Clear(Color.LightGray);
                 car.Draw(g);
+
+                /*    g.DrawString("Distance traveled:"  + car.DistanceTravelled.ToString("0.0"),
+
+                        )*/
 
                 foreach (var l in obstacles)
                     g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
@@ -164,12 +148,13 @@ namespace Car
             if (keyData == Keys.Escape)
                 Application.Exit();
 
-            if(keyData == Keys.Space)
+            if (keyData == Keys.Space)
             {
-                car = new Car(300, 300);
+                car = new Car(250, 320);
             }
 
             return base.ProcessCmdKey(ref msg, keyData);
         }
     }
+
 }

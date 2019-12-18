@@ -36,6 +36,7 @@ namespace Car
         float Heading = 0;
         public float Speed;
         public bool Crashed = false;
+        public float DistanceTravelled = 0;
 
         public Car(float posx, float posy)
         {
@@ -69,9 +70,14 @@ namespace Car
             Position = (frontWheel + backWheel) / 2;
             Heading = atan2(frontWheel.Y - backWheel.Y, frontWheel.X - backWheel.X);
 
+            DistanceTravelled += Speed;
+
             //Acceleration
             acceleration += throttle * EnginePower;
             Speed += acceleration;
+
+            if (Speed < 1e-10)
+                Speed = 0;
         }
         public void Draw(Graphics g)
         {
@@ -159,23 +165,28 @@ namespace Car
             CreatePolygon(pts, out List<Line> p);
             return p;
         }
-
-
     }
 
     public static class Helper
     {
+        public  const float PI = (float)Math.PI;
         public static float cos(double d) => (float)Math.Cos(d);
         public static float sin(double d) => (float)Math.Sin(d);
         public static float atan2(double x, double y) => (float)Math.Atan2(x, y);
-        public static float linear(float x, float x0, float x1, float y0, float y1)
+        public static float linear(float x,
+            float x0,
+            float x1,
+            float y0,
+            float y1)
         {
             if ((x1 - x0) == 0)
                 return (y0 + y1) / 2;
             return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
         }
 
-        public static void CreatePolygon(List<Vector2> pts, out List<Line> poly)
+        public static void CreatePolygon(
+            List<Vector2> pts,
+            out List<Line> poly)
         {
             poly = new List<Line>();
             for (int i = 1; i < pts.Count; i++)
@@ -253,13 +264,13 @@ namespace Car
         }
 
         public static void FindIntersection(
-    Line l1,
-    Line l2,
-    out bool lines_intersect,
-    out bool segments_intersect,
-    out Vector2 intersection,
-    out Vector2 close_p1,
-    out Vector2 close_p2)
+            Line l1,
+            Line l2,
+            out bool lines_intersect,
+            out bool segments_intersect,
+            out Vector2 intersection,
+            out Vector2 close_p1,
+            out Vector2 close_p2)
         {
             FindIntersection(l1.a, l1.b, l2.a, l2.b, out bool l, out bool s, out Vector2 i, out Vector2 c1, out Vector2 c2);
             lines_intersect = l;
