@@ -6,6 +6,8 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using static Car.Helper;
+
 
 namespace Car
 {
@@ -14,8 +16,9 @@ namespace Car
         //http://kidscancode.org/godot_recipes/2d/car_steering/
 
         public Vector2 Position;
-        const float Wheelbase = 35;  // Distance from front to rear wheel
-        const float Length = 50; //Total length of the car
+        const float Wheelbase = 30;  // Distance from front to rear wheel
+        const float Length = 40; //Total length of the car
+        const float Width = Length / 1.618f;
 
         //Forward acceleration force.
         const float EnginePower = 0.4f; //
@@ -32,21 +35,12 @@ namespace Car
 
         float Heading = 0;
         public float Speed;
+        public bool Crashed = false;
 
         public Car(float posx, float posy)
         {
             Position = new Vector2(posx, posy);
             Speed = 0;
-        }
-
-        float cos(double d) => (float)Math.Cos(d);
-        float sin(double d) => (float)Math.Sin(d);
-        float atan2(double x, double y) => (float)Math.Atan2(x, y);
-        float linear(float x, float x0, float x1, float y0, float y1)
-        {
-            if ((x1 - x0) == 0)
-                return (y0 + y1) / 2;
-            return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
         }
 
         public void Move(float steerAngle, float throttle)
@@ -79,16 +73,38 @@ namespace Car
             acceleration += throttle * EnginePower;
             Speed += acceleration;
         }
-
         public void Draw(Graphics g)
         {
             g.RotateTransform(Heading * 180f / (float)Math.PI);
             g.TranslateTransform(Position.X, Position.Y, MatrixOrder.Append);
 
-            float width = Length / 1.618f;
-            g.FillRectangle(Brushes.DarkOrange, -Length / 2, -width / 2, Length, width);
-            g.FillRectangle(Brushes.DarkBlue, Length / 2 - 5, -width / 2, 5, width);
+            g.FillRectangle(Brushes.DarkOrange, -Length / 2, -Width / 2, Length, Width);
+            g.FillRectangle(Brushes.DarkBlue, Length / 2 - 5, -Width / 2, 5, Width);
             g.ResetTransform();
+
+
+            var lines = GetBoundingRectangle();
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var l = lines[i];
+                g.DrawLine(Pens.Black, l.a.X, l.a.Y, l.b.X, l.b.Y);
+            }
+        }
+
+        public void CheckCollision(List<Line> obstacles)
+        {
+            var bounding = GetBoundingRectangle();
+
+            foreach (var b in bounding)
+            {
+                foreach (var o in obstacles)
+                {
+                    FindIntersection(b, o, out bool l, out bool s, out Vector2 i, out Vector2 c1, out Vector2 c2);
+
+                    if (s)
+                        Crashed = true;
+                }
+            }
         }
 
         public List<float> RayCast(List<Line> lines, out List<Vector2> intersectionpoints)
@@ -124,10 +140,58 @@ namespace Car
             return result;
         }
 
+        public List<Line> GetBoundingRectangle()
+        {
+            var w = Length / 2;
+            var l = Width / 2;
+
+            List<Vector2> pts = new List<Vector2>
+            {
+                new Vector2(-w, l),
+                new Vector2(-w, -l),
+                new Vector2(w, -l),
+                new Vector2(w, l),
+            };
+
+            pts = pts.Select(q => Vector2.Transform(q, Matrix3x2.CreateRotation(Heading))).ToList();
+            pts = pts.Select(q => q + Position).ToList();
+
+            CreatePolygon(pts, out List<Line> p);
+            return p;
+        }
+
+
+    }
+
+    public static class Helper
+    {
+        public static float cos(double d) => (float)Math.Cos(d);
+        public static float sin(double d) => (float)Math.Sin(d);
+        public static float atan2(double x, double y) => (float)Math.Atan2(x, y);
+        public static float linear(float x, float x0, float x1, float y0, float y1)
+        {
+            if ((x1 - x0) == 0)
+                return (y0 + y1) / 2;
+            return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
+        }
+
+        public static void CreatePolygon(List<Vector2> pts, out List<Line> poly)
+        {
+            poly = new List<Line>();
+            for (int i = 1; i < pts.Count; i++)
+            {
+                var a = pts[i - 1];
+                var b = pts[i];
+                var l = new Line(a, b);
+                poly.Add(l);
+            }
+            poly.Add(new Line(pts.First(), pts.Last()));
+        }
+
         //http://csharphelper.com/blog/2014/08/determine-where-two-lines-intersect-in-c/
         // Find the point of intersection between
         // the lines p1 --> p2 and p3 --> p4.
-        private void FindIntersection(Vector2 p1,
+        public static void FindIntersection(Vector2 p1,
             Vector2 p2,
             Vector2 p3,
             Vector2 p4,
@@ -186,6 +250,23 @@ namespace Car
 
             close_p1 = new Vector2(p1.X + dx12 * t1, p1.Y + dy12 * t1);
             close_p2 = new Vector2(p3.X + dx34 * t2, p3.Y + dy34 * t2);
+        }
+
+        public static void FindIntersection(
+    Line l1,
+    Line l2,
+    out bool lines_intersect,
+    out bool segments_intersect,
+    out Vector2 intersection,
+    out Vector2 close_p1,
+    out Vector2 close_p2)
+        {
+            FindIntersection(l1.a, l1.b, l2.a, l2.b, out bool l, out bool s, out Vector2 i, out Vector2 c1, out Vector2 c2);
+            lines_intersect = l;
+            segments_intersect = s;
+            intersection = i;
+            close_p1 = c1;
+            close_p2 = c2;
         }
     }
 }

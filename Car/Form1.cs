@@ -9,6 +9,8 @@ using System.Numerics;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
+using System.IO;
+using static Car.Helper;
 
 namespace Car
 {
@@ -51,46 +53,84 @@ namespace Car
         {
             car = new Car(150, 300);
 
-            obstacles = new List<Line>()
+            var file = File.ReadAllLines("data2.csv");
+            var points = new List<Vector2>();
+            foreach (var b in file)
             {
-                new Line(10, 10, 350, 20),
-                new Line(10, 10, 350, 20),
-                new Line(10, 700, 800, 400),
-            };
-        }
+                var s = b.Split(',');
+                var v = new Vector2(float.Parse(s[0]), float.Parse(s[1]));
 
+                v *= 1.4f; //scale up
+
+                points.Add(v);
+
+            }
+            obstacles = new List<Line>();
+
+            List<Vector2> points2 = new List<Vector2>();
+            List<Vector2> points3 = new List<Vector2>();
+            for (int i = 1; i < points.Count; i++)
+            {
+                var a = points[i - 1];
+                var b = points[i];
+
+                var alpha = atan2(a.Y - b.Y, a.X - b.X);
+                var delta = new Vector2(60, 0);
+                delta = Vector2.Transform(delta, Matrix3x2.CreateRotation(alpha + PI / 2));
+                var midpoint = a / 2 + b / 2;
+                points2.Add(midpoint + delta);
+                points3.Add(midpoint - delta);
+            }
+
+            CreatePolygon(points2, out List<Line> poly2);
+            CreatePolygon(points3, out List<Line> poly3);
+
+            obstacles.AddRange(poly2);
+            obstacles.AddRange(poly3);
+        }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            getinput(out float steer_angle, out float throttle);
-            car.Move(steer_angle, throttle);
-
-            var r = car.RayCast(obstacles, out List<Vector2> pts);
-
-            Text = car.Speed.ToString();
-
             Bitmap bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             Graphics g = Graphics.FromImage(bmp);
-            g.Clear(Color.AntiqueWhite);
 
-            car.Draw(g);
-
-            foreach (var l in obstacles)
-                g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
-
-            foreach (var p in pts)
+            if (!car.Crashed)
             {
-                var d = (car.Position - p).Length();
-                g.DrawLine(
-                    d < 100 ? Pens.Red : Pens.Black,
-                    car.Position.X,
-                    car.Position.Y,
-                    p.X,
-                    p.Y);
+                getinput(out float steer_angle, out float throttle);
+                car.Move(steer_angle, throttle);
+                car.CheckCollision(obstacles);
+
+                var r = car.RayCast(obstacles, out List<Vector2> pts);
+                Text = car.Speed.ToString();
+                g.Clear(Color.AntiqueWhite);
+
+                car.Draw(g);
+
+                foreach (var l in obstacles)
+                    g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
+
+                foreach (var p in pts)
+                {
+                    var d = (car.Position - p).Length();
+                    g.DrawLine(
+                        d < 100 ? Pens.Red : Pens.Black,
+                        car.Position.X,
+                        car.Position.Y,
+                        p.X,
+                        p.Y);
+                }
+            }
+            else
+            {
+                g.Clear(Color.Red);
+
+                car.Draw(g);
+
+                foreach (var l in obstacles)
+                    g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
             }
             pictureBox1.Image = bmp;
         }
-
         void getinput(out float steer_angle, out float throttle)
         {
             const float steering_angle = PI / 4;   // Amount that front wheel turns, in radians
@@ -123,6 +163,11 @@ namespace Car
         {
             if (keyData == Keys.Escape)
                 Application.Exit();
+
+            if(keyData == Keys.Space)
+            {
+                car = new Car(300, 300);
+            }
 
             return base.ProcessCmdKey(ref msg, keyData);
         }
