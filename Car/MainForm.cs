@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Neural;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -16,6 +17,8 @@ namespace Car
     public partial class MainForm : Form
     {
         Car car;
+        NeuralNetwork neuralNetwork;
+        Image backGround;
         List<Line> obstacles;
         public MainForm()
         {
@@ -33,7 +36,13 @@ namespace Car
         private void MainForm_Load(object sender, EventArgs e)
         {
             car = new Car(250, 320);
+            LoadMap();
 
+            neuralNetwork = new NeuralNetwork(9, 6, 1);
+        }
+
+        private void LoadMap()
+        {
             var file = File.ReadAllLines("data2.csv");
             var points = new List<Vector2>();
             foreach (var b in file)
@@ -68,54 +77,74 @@ namespace Car
 
             obstacles.AddRange(poly2);
             obstacles.AddRange(poly3);
+
+            backGround = DrawCircuit(Color.AntiqueWhite);
+        }
+        Image DrawCircuit(Color backcolor)
+        {
+            Bitmap bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
+            Graphics g = Graphics.FromImage(bmp);
+            g.Clear(backcolor);
+            foreach (var l in obstacles)
+                g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
+
+            return bmp;
         }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            Bitmap bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
+            Bitmap bmp = (Bitmap)backGround.Clone();
             Graphics g = Graphics.FromImage(bmp);
 
             if (!car.Crashed)
             {
-                getinput(out float steer_angle, out float throttle);
-                car.Move(steer_angle, throttle);
-                car.CheckCollision(obstacles);
-
-                var r = car.RayCast(obstacles, out List<Vector2> pts);
-                Text = car.DistanceTravelled.ToString();
-                g.Clear(Color.AntiqueWhite);
-
                 car.Draw(g);
 
-                foreach (var l in obstacles)
-                    g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
-
+                var raycast = car.RayCast(obstacles, out List<Vector2> pts);
                 foreach (var p in pts)
                 {
                     var d = (car.Position - p).Length();
+
+                    Color c = Color.Orange;
+                    if (d < 50) c = Color.OrangeRed;
+                    if (d > 80) c = Color.ForestGreen;
+
                     g.DrawLine(
-                        d < 100 ? Pens.Red : Pens.Black,
+                        new Pen(c, 1),
                         car.Position.X,
                         car.Position.Y,
                         p.X,
                         p.Y);
                 }
+
+                var vision = raycast.Select(p => p / 100f).ToList();
+                var a = neuralNetwork.FeedForward(vision.Select(p => (double)p).ToList());
+
+                float steer_angle = Helper.Map((float)a[0], 0, 1, -PI / 4f, PI / 4f);
+
+                var throttle = 1f;
+                //GetInput(out float steer_angle, out float throttle);
+
+                car.Move(steer_angle, throttle);
+                car.CheckCollision(obstacles);
             }
             else
             {
-                g.Clear(Color.LightGray);
+                bmp = (Bitmap)DrawCircuit(Color.Gray);
+                g = Graphics.FromImage(bmp);
+                g.DrawString(
+                    "Distance traveled: " + car.DistanceTravelled.ToString("0.0"),
+                    this.Font,
+                    Brushes.Black,
+                    10,
+                    50);
                 car.Draw(g);
-
-                /*    g.DrawString("Distance traveled:"  + car.DistanceTravelled.ToString("0.0"),
-
-                        )*/
-
-                foreach (var l in obstacles)
-                    g.DrawLine(new Pen(Color.DarkGray, 2f), l.a.X, l.a.Y, l.b.X, l.b.Y);
+                timer1.Enabled = false;
             }
+
             pictureBox1.Image = bmp;
         }
-        void getinput(out float steer_angle, out float throttle)
+        void GetInput(out float steer_angle, out float throttle)
         {
             const float steering_angle = PI / 4;   // Amount that front wheel turns, in radians
             steer_angle = 0f;
@@ -151,6 +180,12 @@ namespace Car
             if (keyData == Keys.Space)
             {
                 car = new Car(250, 320);
+                timer1.Enabled = true;
+            }
+
+            if (keyData == Keys.R)
+            {
+                neuralNetwork.Reset();
             }
 
             return base.ProcessCmdKey(ref msg, keyData);
