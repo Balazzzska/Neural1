@@ -38,7 +38,7 @@ namespace Car
             };
         }
 
-        Graph graph;
+        Graph graph1, graph2;
         private void MainForm_Load(object sender, EventArgs e)
         {
             cars = new List<Car>();
@@ -49,11 +49,21 @@ namespace Car
             }
             LoadMap();
 
-            graph = new Graph(1);
-            graph.Left = 1000;
-            graph.Top = 0;
-            graph.BringToFront();
-            graph.Show();
+            graph1 = new Graph(1)
+            {
+                Left = 1000,
+                Top = 0
+            };
+            graph1.BringToFront();
+            graph1.Show();
+
+            graph2 = new Graph(1)
+            {
+                Left = 1000,
+                Top = 500
+            };
+            graph2.BringToFront();
+            graph2.Show();
         }
 
         private void LoadMap()
@@ -166,10 +176,12 @@ namespace Car
                     bestcar = cars.Where(p => p.FinishedLaps == LAPSTOCOMPLETE)
                                   .OrderBy(p => p.DistanceTravelled)
                                   .First();
-                    graph.Add(new List<double>() { frame });
+                    graph1.Add(new List<double>() { frame });
                 }
                 else
-                    graph.Add(new List<double>() { double.NaN });
+                    graph1.Add(new List<double>() { double.NaN });
+
+                graph2.Add(new List<double>() { bestcar.DistanceTravelled });
 
                 g.DrawString(bestcar.DistanceTravelled.ToString(),
                              Font, Brushes.Black, 10, 150);
@@ -182,7 +194,10 @@ namespace Car
                                  Font, Brushes.Black, 10, y += 30);
 
                 cars.Clear();
-                for (int i = 0; i < POPULATIONSIZE; i++)
+                cars.Add(bestcar.Clone());
+                cars[0].Position = STARTPOSITION;
+
+                for (int i = 0; i < POPULATIONSIZE - 1; i++)
                 {
                     var car = new Car(STARTPOSITION);
                     car.Brain = Neural.Matrix.FromList(bestcar.Brain.ToList());

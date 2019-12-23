@@ -110,7 +110,7 @@ namespace Car
             else
             {
                 g.FillRectangle(new SolidBrush(c), -Length / 2, -Width / 2, Length, Width);
-                g.FillRectangle(Brushes.White, Length / 2 - 5, -Width / 2, 5, Width);
+                g.FillRectangle(Brushes.DarkOrange, Length / 2 - 5, -Width / 2, 5, Width);
             }
             g.ResetTransform();
 
@@ -166,6 +166,12 @@ namespace Car
                 Brain.Data[k, 0] = 2 * random.NextDouble() - 1;
                 Thread.Sleep(1);
             }
+        }
+        public Car Clone()
+        {
+            Car c = new Car(Position);
+            c.Brain = Neural.Matrix.FromList(Brain.ToList()); ;
+            return c;
         }
         public List<float> RayCast(List<Line> lines, out List<Vector2> intersectionpoints)
         {
