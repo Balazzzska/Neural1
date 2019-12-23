@@ -70,6 +70,22 @@ namespace Neural
             return result;
         }
 
+        public static Matrix DotProduct(Matrix a, Matrix b)
+        {
+            if (a.RowCount != b.RowCount)
+                throw new Exception("WTF");
+            if (a.ColumnCount != b.ColumnCount)
+                throw new Exception("WTF");
+
+            Matrix result = new Matrix(a.RowCount, a.ColumnCount);
+            for (int i = 0; i < result.RowCount; i++)
+                for (int k = 0; k < result.ColumnCount; k++)
+                    result.Data[i, k] = a.Data[i, k] * b.Data[i, k];
+
+            return result;
+        }
+
+
         public static Matrix FromList(List<double> value)
         {
             var b = new Matrix(value.Count, 1);
@@ -78,7 +94,23 @@ namespace Neural
 
             return b;
         }
+        public static Matrix FromList(List<float> value)
+        {
+            var b = new Matrix(value.Count, 1);
+            for (int i = 0; i < value.Count; i++)
+                b.Data[i, 0] = value[i];
 
+            return b;
+        }
+
+        public double SUM()
+        {
+            double d = 0;
+            for (int i = 0; i < RowCount; i++)
+                for (int k = 0; k < ColumnCount; k++)
+                    d += Data[i, k];
+            return d;
+        }
         public List<double> ToList()
         {
             List<double> d = new List<double>();

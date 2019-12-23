@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static Car.Helper;
 
@@ -16,6 +17,7 @@ namespace Car
         //http://kidscancode.org/godot_recipes/2d/car_steering/
 
         public Vector2 Position;
+        private Vector2 LastPosition;
         public List<Vector2> Trail;
 
         const float Wheelbase = 30;  // Distance from front to rear wheel
@@ -39,19 +41,31 @@ namespace Car
         public float Speed;
         public bool Crashed;
         public float DistanceTravelled;
+        const int VISIONCOUNT = 9;
 
-        public Car(float posx, float posy)
+        public int FinishedLaps;
+
+        Random random;
+        public Neural.Matrix Brain;
+
+        public Car(Vector2 position)
         {
-            Position = new Vector2(posx, posy);
+            Position = position;
             Speed = 0;
             Trail = new List<Vector2>();
             Crashed = false;
             DistanceTravelled = 0;
             Heading = 0;
+            random = new Random();
+            FinishedLaps = 0;
+
+            Brain = new Neural.Matrix(VISIONCOUNT, 1);
+            Brain.Randomize();
         }
 
         public void Move(float steerAngle, float throttle)
         {
+            LastPosition = Position;
             Trail.Add(Position);
 
             var acceleration = 0f;
@@ -64,8 +78,8 @@ namespace Car
             acceleration += dragForce;
 
             //This will ensure that the car doesn’t keep creeping forward at very low speeds as friction never quite reaches zero.
-            if (Speed < 0.2)
-                frictionForce *= 3;
+            if (Speed < 1e-10)
+                Speed = 0;
 
             //Steering
             Vector2 frontWheel = Position + Wheelbase / 2 * new Vector2(cos(Heading), sin(Heading));
@@ -83,27 +97,31 @@ namespace Car
             //Acceleration
             acceleration += throttle * EnginePower;
             Speed += acceleration;
-
-            if (Speed < 1e-10)
-                Speed = 0;
         }
-        public void Draw(Graphics g)
+
+        public void Draw(Graphics g, Color c)
         {
             g.RotateTransform(Heading * 180f / (float)Math.PI);
             g.TranslateTransform(Position.X, Position.Y, MatrixOrder.Append);
 
-            g.FillRectangle(Brushes.DarkOrange, -Length / 2, -Width / 2, Length, Width);
-            g.FillRectangle(Brushes.DarkBlue, Length / 2 - 5, -Width / 2, 5, Width);
+            if (Crashed) {
+                g.DrawRectangle(Pens.Black, -Length / 2, -Width / 2, Length, Width);
+            }
+            else
+            {
+                g.FillRectangle(new SolidBrush(c), -Length / 2, -Width / 2, Length, Width);
+                g.FillRectangle(Brushes.White, Length / 2 - 5, -Width / 2, 5, Width);
+            }
             g.ResetTransform();
 
-            foreach (var t in Trail)
-                g.FillEllipse(Brushes.DarkMagenta,
-                    t.X - 1,
-                    t.Y - 1,
-                    2,
-                    2);
+            if (!Crashed)
+                foreach (var t in Trail)
+                    g.FillEllipse(new SolidBrush(c),
+                        t.X - 1,
+                        t.Y - 1,
+                        2,
+                        2);
         }
-
         public void CheckCollision(List<Line> obstacles)
         {
             var bounding = GetBoundingRectangle();
@@ -119,7 +137,36 @@ namespace Car
                 }
             }
         }
+        public void CheckFinishLine(Line line)
+        {
+            FindIntersection(line,
+                             new Line(LastPosition, Position),
+                             out bool lines_intersect,
+                             out bool segments_intersect,
+                             out Vector2 intersection,
+                             out Vector2 close_p1,
+                             out Vector2 close_p2);
 
+            if (segments_intersect)
+                FinishedLaps++;
+        }
+        private static double Sigmoid(double d) => 1 / (1 + Math.Exp(-d));
+        public void MakeDesision(List<float> vision, out float wheel)
+        {
+            var p = Neural.Matrix.DotProduct(Neural.Matrix.FromList(vision), Brain);
+            var sum = 2 * Sigmoid(p.SUM()) - 1;
+            wheel = (float)sum;
+        }
+        public void Mutate()
+        {
+            int r = random.Next(1, 5);
+            for (int i = 0; i < r; i++)
+            {
+                var k = random.Next(0, Brain.RowCount - 1);
+                Brain.Data[k, 0] = 2 * random.NextDouble() - 1;
+                Thread.Sleep(1);
+            }
+        }
         public List<float> RayCast(List<Line> lines, out List<Vector2> intersectionpoints)
         {
             const float PI = (float)Math.PI;
@@ -128,7 +175,7 @@ namespace Car
             intersectionpoints = new List<Vector2>();
             float deg = -PI / 4f;
             float degstep = PI / 16f;
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < VISIONCOUNT; i++)
             {
                 var v = new Vector2(100, 0);
                 v = Vector2.Transform(v, Matrix3x2.CreateRotation(deg + Heading));
@@ -153,7 +200,6 @@ namespace Car
 
             return result;
         }
-
         public List<Line> GetBoundingRectangle()
         {
             var w = Length / 2;

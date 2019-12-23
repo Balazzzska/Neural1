@@ -40,9 +40,9 @@ namespace Car
             // 
             this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pictureBox1.Location = new System.Drawing.Point(0, 0);
-            this.pictureBox1.Margin = new System.Windows.Forms.Padding(11, 11, 11, 11);
+            this.pictureBox1.Margin = new System.Windows.Forms.Padding(11);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(1400, 1000);
+            this.pictureBox1.Size = new System.Drawing.Size(1000, 1000);
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
             // 
@@ -56,13 +56,13 @@ namespace Car
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(22F, 45F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1400, 1000);
+            this.ClientSize = new System.Drawing.Size(1000, 1000);
             this.Controls.Add(this.pictureBox1);
             this.Font = new System.Drawing.Font("Cascadia Code", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-            this.Margin = new System.Windows.Forms.Padding(11, 11, 11, 11);
+            this.Margin = new System.Windows.Forms.Padding(11);
             this.Name = "MainForm";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "MainForm";
             this.Load += new System.EventHandler(this.MainForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();

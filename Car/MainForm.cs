@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static Car.Helper;
@@ -16,10 +17,14 @@ namespace Car
 {
     public partial class MainForm : Form
     {
-        Car car;
-        NeuralNetwork neuralNetwork;
+        List<Car> cars;
         Image backGround;
         List<Line> obstacles;
+
+        const int POPULATIONSIZE = 80;
+        const int LAPSTOCOMPLETE = 3;
+        readonly Vector2 STARTPOSITION = new Vector2(300, 900);
+        Line FinishLine = new Line(400, 800, 400, 1200);
         public MainForm()
         {
             InitializeComponent();
@@ -33,27 +38,36 @@ namespace Car
             };
         }
 
+        Graph graph;
         private void MainForm_Load(object sender, EventArgs e)
         {
-            car = new Car(250, 320);
+            cars = new List<Car>();
+            for (int i = 0; i < POPULATIONSIZE; i++)
+            {
+                cars.Add(new Car(STARTPOSITION));
+                Thread.Sleep(2);
+            }
             LoadMap();
 
-            neuralNetwork = new NeuralNetwork(9, 6, 1);
+            graph = new Graph(1);
+            graph.Left = 1000;
+            graph.Top = 0;
+            graph.BringToFront();
+            graph.Show();
         }
 
         private void LoadMap()
         {
-            var file = File.ReadAllLines("data2.csv");
+            var file = File.ReadAllLines("data3.csv");
             var points = new List<Vector2>();
             foreach (var b in file)
             {
                 var s = b.Split(',');
                 var v = new Vector2(float.Parse(s[0]), float.Parse(s[1]));
 
-                v *= 1.4f; //scale up
+                //v *= 1.4f; //scale up
 
                 points.Add(v);
-
             }
             obstacles = new List<Line>();
 
@@ -65,7 +79,7 @@ namespace Car
                 var b = points[i];
 
                 var alpha = atan2(a.Y - b.Y, a.X - b.X);
-                var delta = new Vector2(60, 0);
+                var delta = new Vector2(55, 0);
                 delta = Vector2.Transform(delta, Matrix3x2.CreateRotation(alpha + PI / 2));
                 var midpoint = a / 2 + b / 2;
                 points2.Add(midpoint + delta);
@@ -91,66 +105,126 @@ namespace Car
             return bmp;
         }
 
+        int frame = 0;
         private void Timer1_Tick(object sender, EventArgs e)
         {
             Bitmap bmp = (Bitmap)backGround.Clone();
             Graphics g = Graphics.FromImage(bmp);
 
-            if (!car.Crashed)
+            g.DrawString((frame++).ToString(),
+                         Font, Brushes.Black, 10, 100);
+
+            bool allcrashed = true;
+            bool raceEnded = false;
+
+            foreach (var c in cars)
             {
-                car.Draw(g);
+                //GetKeyboardInput(out float steer_angle, out float throttle);
 
-                var raycast = car.RayCast(obstacles, out List<Vector2> pts);
-                foreach (var p in pts)
+                if (!c.Crashed)
                 {
-                    var d = (car.Position - p).Length();
+                    var raycast = c.RayCast(obstacles, out List<Vector2> pts);
+                    var vision = raycast.Select(p => p / 100f).ToList();
 
-                    Color c = Color.Orange;
-                    if (d < 50) c = Color.OrangeRed;
-                    if (d > 80) c = Color.ForestGreen;
+                    c.MakeDesision(vision, out float wheel);
+                    var throttle = 1f;
+                    float steer_angle = Helper.Map(wheel, -1, 1, -PI / 4f, PI / 4f);
 
-                    g.DrawLine(
-                        new Pen(c, 1),
-                        car.Position.X,
-                        car.Position.Y,
-                        p.X,
-                        p.Y);
+                    c.Move(steer_angle, throttle);
+                    c.CheckFinishLine(FinishLine);
+                    c.CheckCollision(obstacles);
+
+                    allcrashed = false;
+                }
+            }
+
+            if (frame == 1000)
+                allcrashed = true;
+
+            if (cars.Any(p => p.FinishedLaps == LAPSTOCOMPLETE))
+                raceEnded = true;
+
+            foreach (var c in cars.Where(p => p.Crashed))
+                c.Draw(g, c.Crashed ? Color.Red : Color.ForestGreen);
+            foreach (var c in cars.Where(p => !p.Crashed))
+                c.Draw(g, c.Crashed ? Color.Red : Color.ForestGreen);
+
+            g.DrawLine(new Pen(Color.Green, 3f),
+                       FinishLine.a.X,
+                       FinishLine.a.Y,
+                       FinishLine.b.X,
+                       FinishLine.b.Y);
+
+            if (allcrashed || raceEnded)
+            {
+                var rank = cars.OrderByDescending(p => p.DistanceTravelled);
+                var worstcar = rank.Last();
+                var bestcar = rank.First();
+
+                if (raceEnded)
+                {
+                    bestcar = cars.Where(p => p.FinishedLaps == LAPSTOCOMPLETE)
+                                  .OrderBy(p => p.DistanceTravelled)
+                                  .First();
+                    graph.Add(new List<double>() { frame });
+                }
+                else
+                    graph.Add(new List<double>() { double.NaN });
+
+                g.DrawString(bestcar.DistanceTravelled.ToString(),
+                             Font, Brushes.Black, 10, 150);
+
+                var hist = cars.GroupBy(p => p.FinishedLaps).Select(p => p.Key.ToString() + " " + p.Count().ToString()).ToList();
+
+                int y = 230;
+                for (int i = 0; i < hist.Count; i++)
+                    g.DrawString(hist[i],
+                                 Font, Brushes.Black, 10, y += 30);
+
+                cars.Clear();
+                for (int i = 0; i < POPULATIONSIZE; i++)
+                {
+                    var car = new Car(STARTPOSITION);
+                    car.Brain = Neural.Matrix.FromList(bestcar.Brain.ToList());
+                    car.Mutate();
+                    cars.Add(car);
                 }
 
-                var vision = raycast.Select(p => p / 100f).ToList();
-                var a = neuralNetwork.FeedForward(vision.Select(p => (double)p).ToList());
+                bestcar.Draw(g, Color.Purple);
 
-                float steer_angle = Helper.Map((float)a[0], 0, 1, -PI / 4f, PI / 4f);
-
-                var throttle = 1f;
-                //GetInput(out float steer_angle, out float throttle);
-
-                car.Move(steer_angle, throttle);
-                car.CheckCollision(obstacles);
-            }
-            else
-            {
-                bmp = (Bitmap)DrawCircuit(Color.Gray);
-                g = Graphics.FromImage(bmp);
-                g.DrawString(
-                    "Distance traveled: " + car.DistanceTravelled.ToString("0.0"),
-                    this.Font,
-                    Brushes.Black,
-                    10,
-                    50);
-                car.Draw(g);
-                timer1.Enabled = false;
+                frame = 0;
+                WaitAfterRace();
             }
 
             pictureBox1.Image = bmp;
         }
-        void GetInput(out float steer_angle, out float throttle)
+
+        void WaitAfterRace()
         {
-            const float steering_angle = PI / 4;   // Amount that front wheel turns, in radians
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += Bw_DoWork;
+            bw.RunWorkerCompleted += Bw_RunWorkerCompleted;
+            timer1.Enabled = false;
+            bw.RunWorkerAsync();
+        }
+
+        private void Bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            timer1.Enabled = true;
+        }
+
+        private void Bw_DoWork(object sender, DoWorkEventArgs e)
+        {
+            Thread.Sleep(1000);
+        }
+
+        void GetKeyboardInput(out float steer_angle, out float throttle)
+        {
             steer_angle = 0f;
-            if (iskeydown[Keys.A]) steer_angle -= 1;
-            if (iskeydown[Keys.D]) steer_angle += 1;
-            steer_angle *= steering_angle;
+            if (iskeydown[Keys.A])
+                steer_angle -= 1;
+            if (iskeydown[Keys.D])
+                steer_angle += 1;
 
             throttle = 0;
             if (iskeydown[Keys.W])
@@ -179,13 +253,11 @@ namespace Car
 
             if (keyData == Keys.Space)
             {
-                car = new Car(250, 320);
-                timer1.Enabled = true;
+                timer1.Enabled = !timer1.Enabled;
             }
 
             if (keyData == Keys.R)
             {
-                neuralNetwork.Reset();
             }
 
             return base.ProcessCmdKey(ref msg, keyData);
