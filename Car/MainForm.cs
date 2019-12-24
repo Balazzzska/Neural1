@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -24,7 +25,7 @@ namespace Car
         const int POPULATIONSIZE = 80;
         const int LAPSTOCOMPLETE = 3;
         readonly Vector2 STARTPOSITION = new Vector2(300, 900);
-        Line FinishLine = new Line(400, 800, 400, 1200);
+        Line FinishLine = new Line(400, 600, 400, 1200);
         public MainForm()
         {
             InitializeComponent();
@@ -47,7 +48,7 @@ namespace Car
                 cars.Add(new Car(STARTPOSITION));
                 Thread.Sleep(2);
             }
-            LoadMap();
+            LoadMap("data1.csv");
 
             graph1 = new Graph(1)
             {
@@ -66,17 +67,19 @@ namespace Car
             graph2.Show();
         }
 
-        private void LoadMap()
+        private void LoadMap(string filename)
         {
-            var file = File.ReadAllLines("data3.csv");
+            var file = File.ReadAllLines(filename);
             var points = new List<Vector2>();
             foreach (var b in file)
             {
                 var s = b.Split(',');
+                s[0] = s[0].Replace('.', ',');
+                s[1] = s[1].Replace('.', ',');
                 var v = new Vector2(float.Parse(s[0]), float.Parse(s[1]));
 
-                //v *= 1.4f; //scale up
-
+                v *= 0.8f;
+                v.Y += 150;
                 points.Add(v);
             }
             obstacles = new List<Line>();
@@ -129,16 +132,26 @@ namespace Car
 
             foreach (var c in cars)
             {
-                //GetKeyboardInput(out float steer_angle, out float throttle);
 
                 if (!c.Crashed)
                 {
                     var raycast = c.RayCast(obstacles, out List<Vector2> pts);
                     var vision = raycast.Select(p => p / 100f).ToList();
 
+                    if (SHOWRAYCAST)
+                        foreach (var p in pts)
+                            g.DrawLine(Pens.Black, c.Position.X, c.Position.Y, p.X, p.Y);
+
                     c.MakeDesision(vision, out float wheel);
                     var throttle = 1f;
                     float steer_angle = Helper.Map(wheel, -1, 1, -PI / 4f, PI / 4f);
+
+                    if (KEYBOARDINPUT)
+                    {
+                        GetKeyboardInput(out float s, out float t);
+                        steer_angle = s;
+                        throttle = t;
+                    }
 
                     c.Move(steer_angle, throttle);
                     c.CheckFinishLine(FinishLine);
@@ -249,6 +262,10 @@ namespace Car
         }
 
         Dictionary<Keys, bool> iskeydown;
+
+        const bool SHOWRAYCAST = true;
+        const bool KEYBOARDINPUT = true;
+
         protected override void OnKeyDown(KeyEventArgs e)
         {
             if (iskeydown.ContainsKey(e.KeyCode))
@@ -261,6 +278,7 @@ namespace Car
                 iskeydown[e.KeyCode] = false;
             base.OnKeyUp(e);
         }
+
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if (keyData == Keys.Escape)
@@ -273,6 +291,7 @@ namespace Car
 
             if (keyData == Keys.R)
             {
+                LoadMap("data1.csv");
             }
 
             return base.ProcessCmdKey(ref msg, keyData);

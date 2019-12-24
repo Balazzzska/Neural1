@@ -54,11 +54,11 @@ namespace Car
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(22F, 45F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(22F, 42F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1000, 1000);
             this.Controls.Add(this.pictureBox1);
-            this.Font = new System.Drawing.Font("Cascadia Code", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Margin = new System.Windows.Forms.Padding(11);
             this.Name = "MainForm";
