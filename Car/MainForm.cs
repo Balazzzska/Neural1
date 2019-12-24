@@ -18,6 +18,9 @@ namespace Car
 {
     public partial class MainForm : Form
     {
+        const bool SHOWRAYCAST = true;
+        const bool KEYBOARDINPUT = true;
+
         List<Car> cars;
         Image backGround;
         List<Line> obstacles;
@@ -66,6 +69,10 @@ namespace Car
             graph2.BringToFront();
             graph2.Show();
         }
+
+
+
+
 
         private void LoadMap(string filename)
         {
@@ -262,9 +269,6 @@ namespace Car
         }
 
         Dictionary<Keys, bool> iskeydown;
-
-        const bool SHOWRAYCAST = true;
-        const bool KEYBOARDINPUT = true;
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
